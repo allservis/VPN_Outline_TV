@@ -107,6 +107,7 @@ fun MainScreen(
         }
     }
 
+
     LaunchedEffect(isConnected, vpnServerState.startTime) {
         isConnectionLoading = false
         while (isConnected) {

@@ -1,8 +1,5 @@
 package app.android.outlinevpntv.ui
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -14,7 +11,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Fitbit
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Quiz
@@ -54,11 +49,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -97,16 +90,12 @@ fun MainScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    val isDarkTheme by themeViewModel.isDarkTheme.collectAsState()
+    val topAppBarInteractionSource = remember { MutableInteractionSource() }
+    val connectButtonInteractionSource = remember { MutableInteractionSource() }
 
-    val waveColors = if (isDarkTheme) {
-        listOf(Color(0xFF055A76), Color(0xFF002D46))
-    } else {
-        listOf(Color(0xFFA0DEFF), Color(0xFFFFF9D0))
-    }
+    val isTopAppBarFocused by topAppBarInteractionSource.collectIsFocusedAsState()
+    val isConnectButtonFocused by connectButtonInteractionSource.collectIsFocusedAsState()
 
-    val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
     LaunchedEffect(Unit) {
         errorEvent.observe(lifecycleOwner) {
             isConnectionLoading = false
@@ -125,6 +114,13 @@ fun MainScreen(
             elapsedTime = ((System.currentTimeMillis() - vpnServerState.startTime) / 1000).toInt()
         }
         elapsedTime = 0
+    }
+
+    val isDarkTheme by themeViewModel.isDarkTheme.collectAsState()
+    val waveColors = if (isDarkTheme) {
+        listOf(Color(0xFF055A76), Color(0xFF002D46))
+    } else {
+        listOf(Color(0xFFA0DEFF), Color(0xFFFFF9D0))
     }
 
     Box(
@@ -170,7 +166,7 @@ fun MainScreen(
                     .padding(8.dp)
                     .border(
                         width = 3.dp,
-                        color = if (isFocused)
+                        color = if (isTopAppBarFocused)
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                         else
                             Color.Transparent,
@@ -179,7 +175,7 @@ fun MainScreen(
                     .padding(4.dp)
                     .clip(MaterialTheme.shapes.large)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .focusable(interactionSource = interactionSource)
+                    .focusable(interactionSource = topAppBarInteractionSource)
             ) {
                 TopAppBar(
                     title = {
@@ -278,12 +274,12 @@ fun MainScreen(
                     modifier = Modifier.size(120.dp).padding(20.dp)
                 )
             } else {
-                Box(
+               Box(
                     modifier = Modifier
                         .size(120.dp)
                         .border(
                             width = 3.dp,
-                            color = if (isFocused)
+                            color = if (isConnectButtonFocused)
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                             else
                                 Color.Transparent,
@@ -306,9 +302,9 @@ fun MainScreen(
                                 }
                             )
                         )
-                        .focusable(interactionSource = interactionSource)
+                        .focusable(interactionSource = connectButtonInteractionSource)
                         .clickable(
-                            interactionSource = interactionSource,
+                            interactionSource = connectButtonInteractionSource,
                             indication = ripple(true)
                         ) {
                             if (!isEditing) {
@@ -379,7 +375,6 @@ fun MainScreen(
     }
 }
 
-
 @Preview(name = "Default", showBackground = true)
 @Preview(name = "TV", device = Devices.TV_1080p, showBackground = true)
 @Composable
@@ -392,9 +387,9 @@ fun DefaultPreview() {
             host = "172.66.44.135:80",
             url = "ss://5df7962e-f9fe-41e6-ab49-ed96ccb856a7@172.66.44.135:80?path=%2F&security=none&encryption=none&host=v2ra1.ecrgpk.workers.dev&type=ws#United States%20#1269%20/%20OutlineKeys.com"
         ),
-        onConnectClick = {_-> },
+        onConnectClick = { _ -> },
         onDisconnectClick = {},
-        onSaveServer = {_,_ -> },
+        onSaveServer = { _, _ -> },
         themeViewModel = ThemeViewModel(PreferencesManager(LocalContext.current)),
         autoConnectViewModel = AutoConnectViewModel(PreferencesManager(LocalContext.current))
     )

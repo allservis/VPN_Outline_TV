@@ -5,19 +5,28 @@ import android.content.Context
 import android.content.Intent
 import android.net.VpnService
 import androidx.activity.result.contract.ActivityResultContract
+import android.content.ActivityNotFoundException
 
-class VPNPermissionContract : ActivityResultContract<Void?, Boolean>() {
-    private var cachedIntent: Intent? = null
+class VPNPermissionContract : ActivityResultContract<Unit, Boolean>() {
 
-    override fun getSynchronousResult(context: Context, input: Void?): SynchronousResult<Boolean>? {
-        VpnService.prepare(context)?.let { intent ->
-            cachedIntent = intent
-            return null
-        }
-        return SynchronousResult(true)
+    override fun getSynchronousResult(context: Context, input: Unit): SynchronousResult<Boolean>? {
+        val prepareIntent = VpnService.prepare(context)
+        return if (prepareIntent == null) SynchronousResult(true) else null
     }
 
-    override fun createIntent(context: Context, input: Void?) = cachedIntent!!.also { cachedIntent = null }
+   override fun createIntent(context: Context, input: Unit): Intent {
+        val intent = VpnService.prepare(context)
+            ?: throw IllegalStateException("VPN permission is already granted, createIntent shouldn't be called")
 
-    override fun parseResult(resultCode: Int, intent: Intent?) = resultCode == Activity.RESULT_OK
+        val pm = context.packageManager
+        val canResolve = intent.resolveActivity(pm) != null
+        if (!canResolve) {
+           throw ActivityNotFoundException("System VPN consent activity not found on this device")
+        }
+        return intent
+    }
+
+    override fun parseResult(resultCode: Int, intent: Intent?): Boolean {
+        return resultCode == Activity.RESULT_OK
+    }
 }

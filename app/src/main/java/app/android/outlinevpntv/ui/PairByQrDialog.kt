@@ -10,10 +10,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -29,7 +31,13 @@ fun PairByQrDialog(
             dismissOnBackPress = true
         )
     ) {
-        Surface(modifier = Modifier.fillMaxSize()) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            tonalElevation = 1.dp,
+            color = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            shape = MaterialTheme.shapes.medium
+        ) {
             Box(Modifier.fillMaxSize()) {
                 PairByQrScreen(onKeyReady = onKeyReady)
 
@@ -39,11 +47,23 @@ fun PairByQrDialog(
                         .align(Alignment.TopEnd)
                         .padding(12.dp)
                 ) {
-                    Icon(Icons.Filled.Close, contentDescription = "Close")
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Close",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         }
     }
+    BackHandler(onBack = onCancel)
+}
 
-    BackHandler { onCancel() }
+@Preview()
+@Composable
+private fun PairByQrDialogPreview() {
+    PairByQrDialog(
+        onKeyReady = {},
+        onCancel = { }
+    )
 }

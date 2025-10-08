@@ -231,4 +231,11 @@
     <string name="error_port_unavailable">Не удалось занять порт</string>
     <string name="error_port_in_use">Порт занят, пробуем ещё раз…</string>
     <string name="error_server_start_failed">Ошибка запуска локального сервера: %1$s</string>
+    <string name="pair_title">Вставьте ключ</string>
+    <string name="pair_placeholder">Ключ</string>
+    <string name="pair_send">Отправить</string>
+    <string name="pair_enter_key_alert">Введите ключ</string>
+    <string name="pair_key_sent_msg">Ключ отправлен. Можно вернуться к ТВ.</string>
+    <string name="pair_error_prefix">Ошибка:</string>
+    <string name="pair_not_found">Not found</string>
 </resources>

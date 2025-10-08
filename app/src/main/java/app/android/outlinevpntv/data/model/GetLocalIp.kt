@@ -1,4 +1,4 @@
-package app.android.outlinevpntv.data.remote
+package app.android.outlinevpntv.data.model
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -7,17 +7,18 @@ import android.graphics.Color
 import android.net.ConnectivityManager
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
 import java.util.UUID
 
 @SuppressLint("MissingPermission")
 fun Context.getLocalIp(): String? {
-    // Работает и для Wi-Fi, и для Ethernet на новых API:
     val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     val active = cm.activeNetwork ?: return null
     val caps = cm.getLinkProperties(active) ?: return null
     val inet = caps.linkAddresses
         .map { it.address.hostAddress }
-        .firstOrNull { it != null && ":" !in it } // IPv4, чтобы проще для пользователя
+        .firstOrNull { it != null && ":" !in it }
     return inet
 }
 
@@ -27,8 +28,8 @@ fun Bitmap.toImageBitmap(): ImageBitmap =
     Bitmap.createScaledBitmap(this, width, height, false).asImageBitmap()
 
 fun makeQr(content: String, size: Int = 512): Bitmap {
-    val bitMatrix = com.google.zxing.qrcode.QRCodeWriter().encode(
-        content, com.google.zxing.BarcodeFormat.QR_CODE, size, size
+    val bitMatrix = QRCodeWriter().encode(
+        content, BarcodeFormat.QR_CODE, size, size
     )
     val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.RGB_565)
     for (x in 0 until size) for (y in 0 until size) {

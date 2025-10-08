@@ -1,12 +1,19 @@
 package app.android.outlinevpntv.data.remote
 
+import android.content.Context
+import android.os.Build
+import android.content.res.Configuration
 import fi.iki.elonen.NanoHTTPD
+import app.android.outlinevpntv.R
+import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 
 class TvLocalServer(
+    private val appContext: Context,
     port: Int = 0,
     private val token: String,
     private val onKeyReceived: (String) -> Unit,
+    private val preferClientLanguage: Boolean = false,
 ) : NanoHTTPD(port) {
 
     private val used = AtomicBoolean(false)
@@ -26,32 +33,18 @@ class TvLocalServer(
 
         return when {
             session.method == Method.GET && uri == "/session/$token" && !used.get() -> {
+                val ctxForStrings = if (preferClientLanguage) {
+                    val acceptLang = session.headers["accept-language"]
+                    localeContext(appContext, parseFirstLocale(acceptLang))
+                } else {
+                    appContext
+                }
+
+                val html = renderPairPage(ctxForStrings, token)
                 newFixedLengthResponse(
                     Response.Status.OK,
-                    "text/html",
-                    """
-                    <!doctype html>
-                    <meta name="viewport" content="width=device-width,initial-scale=1">
-                    <h3>Вставьте ключ</h3>
-                    <input id="key" style="width:100%;padding:8px" placeholder="Ключ">
-                    <button onclick="send()">Отправить</button>
-                    <p id="msg"></p>
-                    <script>
-                    async function send(){
-                      const key = document.getElementById('key').value.trim();
-                      if(!key){ alert('Введите ключ'); return; }
-                      const r = await fetch('/api/session/$token/submit', {
-                        method:'POST',
-                        headers:{'Content-Type':'application/json'},
-                        body: JSON.stringify({key})
-                      });
-                      const j = await r.json();
-                      document.getElementById('msg').innerText = j.ok ? 
-                        'Ключ отправлен. Можно вернуться к ТВ.' : 
-                        ('Ошибка: ' + (j.error || 'unknown'));
-                    }
-                    </script>
-                    """.trimIndent()
+                    "text/html; charset=utf-8",
+                    html
                 )
             }
 
@@ -91,12 +84,50 @@ class TvLocalServer(
                 }
             }
 
-            else -> newFixedLengthResponse(
-                Response.Status.NOT_FOUND,
-                "text/plain",
-                "Not found"
-            )
+            else -> {
+                val ctxForStrings = if (preferClientLanguage) {
+                    val acceptLang = session.headers["accept-language"]
+                    localeContext(appContext, parseFirstLocale(acceptLang))
+                } else appContext
+
+                val notFound = ctxForStrings.getString(R.string.pair_not_found)
+                newFixedLengthResponse(
+                    Response.Status.NOT_FOUND,
+                    "text/plain; charset=utf-8",
+                    notFound
+                )
+            }
         }
+    }
+
+    private fun renderPairPage(ctx: Context, token: String): String {
+        val template = ctx.resources.openRawResource(R.raw.pair_page)
+            .bufferedReader(charset = Charsets.UTF_8)
+            .use { it.readText() }
+
+        return template
+            .replace("{{title}}", ctx.getString(R.string.pair_title))
+            .replace("{{placeholder}}", ctx.getString(R.string.pair_placeholder))
+            .replace("{{send}}", ctx.getString(R.string.pair_send))
+            .replace("{{enter_key_alert}}", ctx.getString(R.string.pair_enter_key_alert))
+            .replace("{{key_sent_msg}}", ctx.getString(R.string.pair_key_sent_msg))
+            .replace("{{error_prefix}}", ctx.getString(R.string.pair_error_prefix))
+            .replace("{{submit_url}}", "/api/session/$token/submit")
+    }
+
+    private fun parseFirstLocale(acceptLanguage: String?): Locale? {
+        val raw = acceptLanguage?.split(',')?.firstOrNull()?.trim() ?: return null
+        val langTag = raw.split(';').first().trim()
+        return try {
+            Locale.forLanguageTag(langTag).takeIf { it.language.isNotBlank() }
+        } catch (_: Throwable) { null }
+    }
+
+    private fun localeContext(base: Context, locale: Locale?): Context {
+        if (locale == null) return base
+        val config = Configuration(base.resources.configuration)
+        config.setLocale(locale)
+        return base.createConfigurationContext(config)
     }
 }
 

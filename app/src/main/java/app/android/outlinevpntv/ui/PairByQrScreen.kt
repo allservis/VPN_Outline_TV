@@ -36,10 +36,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.android.outlinevpntv.R
 import app.android.outlinevpntv.data.remote.TvLocalServer
-import app.android.outlinevpntv.data.remote.genToken
-import app.android.outlinevpntv.data.remote.getLocalIp
-import app.android.outlinevpntv.data.remote.makeQr
-import app.android.outlinevpntv.data.remote.toImageBitmap
+import app.android.outlinevpntv.data.model.genToken
+import app.android.outlinevpntv.data.model.getLocalIp
+import app.android.outlinevpntv.data.model.makeQr
+import app.android.outlinevpntv.data.model.toImageBitmap
 import fi.iki.elonen.NanoHTTPD
 import java.net.BindException
 
@@ -88,13 +88,17 @@ fun PairByQrScreen(
         server = null
 
         val srv = TvLocalServer(
+            appContext = ctx.applicationContext,
             port = 0,
-            token = token
-        ) { key ->
-            runCatching { server?.stop() }
-            server = null
-            onKeyReady(key)
-        }
+            token = token,
+            onKeyReceived = { key ->
+                runCatching { server?.stop() }
+                server = null
+                onKeyReady(key)
+            },
+            preferClientLanguage = false
+        )
+
 
         try {
             srv.start(NanoHTTPD.SOCKET_READ_TIMEOUT, /* daemon = */ false)

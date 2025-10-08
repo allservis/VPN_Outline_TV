@@ -231,6 +231,11 @@
     <string name="error_port_unavailable">Failed to occupy the port</string>
     <string name="error_port_in_use">The port is busy, try again…</string>
     <string name="error_server_start_failed">Error starting local server: %1$s</string>
-
-
+    <string name="pair_title">Paste the key</string>
+    <string name="pair_placeholder">Key</string>
+    <string name="pair_send">Send</string>
+    <string name="pair_enter_key_alert">Enter the key</string>
+    <string name="pair_key_sent_msg">Key sent. You can return to TV.</string>
+    <string name="pair_error_prefix">Error:</string>
+    <string name="pair_not_found">Not found</string>
 </resources>

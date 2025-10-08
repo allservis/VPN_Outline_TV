@@ -29,10 +29,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import app.android.outlinevpntv.R
 import app.android.outlinevpntv.data.remote.TvLocalServer
 import app.android.outlinevpntv.data.remote.genToken
 import app.android.outlinevpntv.data.remote.getLocalIp
@@ -78,7 +80,7 @@ fun PairByQrScreen(
 
         val ip = ctx.getLocalIp()
         if (ip == null) {
-            error = "Не удалось получить IP адрес устройства"
+            error = ctx.getString(R.string.error_ip_not_found)
             return@LaunchedEffect
         }
 
@@ -99,7 +101,7 @@ fun PairByQrScreen(
             val actualPort = srv.listeningPort
             if (actualPort <= 0) {
                 srv.stop()
-                error = "Не удалось занять порт"
+                error = ctx.getString(R.string.error_port_unavailable)
                 return@LaunchedEffect
             }
 
@@ -110,12 +112,12 @@ fun PairByQrScreen(
         } catch (e: BindException) {
             runCatching { srv.stop() }
             server = null
-            error = "Порт занят, пробуем ещё раз…"
+            error = ctx.getString(R.string.error_port_in_use)
             token = genToken()
         } catch (t: Throwable) {
             runCatching { srv.stop() }
             server = null
-            error = "Ошибка запуска локального сервера: ${t.message}"
+            error = ctx.getString(R.string.error_server_start_failed, t.message ?: "unknown")
         }
     }
 
@@ -133,7 +135,7 @@ fun PairByQrScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Сканируйте QR с телефона (должно быть в той же Wi-Fi/LAN сети)",
+                text = stringResource(id = R.string.scan_the_qr_code_from_your),
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center
             )
@@ -159,7 +161,7 @@ fun PairByQrScreen(
                         )
                     } ?: run {
                         Text(
-                            text = "Генерация QR…",
+                            text = stringResource(id = R.string.qr_code_generation),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -195,7 +197,7 @@ fun PairByQrScreen(
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
             ) {
                 Text(
-                    text = "Сгенерировать новый QR",
+                    text = stringResource(id = R.string.Generate_new_qr_code),
                     style = MaterialTheme.typography.labelLarge
                 )
             }

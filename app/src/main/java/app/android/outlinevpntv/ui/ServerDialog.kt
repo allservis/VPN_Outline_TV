@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -64,6 +65,7 @@ fun ServerDialog(
     var isLoading by remember { mutableStateOf(false) }
     var isKeyError by remember { mutableStateOf(false) }
     var showFileManagerDialog by remember { mutableStateOf(false) }
+    var showQrPair by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val activity = (LocalContext.current as? Activity)
@@ -120,6 +122,16 @@ fun ServerDialog(
                     Icon(
                         imageVector = Icons.Filled.ContentPaste,
                         contentDescription = "Paste from clipboard"
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(
+                    onClick = { showQrPair = true }
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.QrCode,
+                        contentDescription = "Scan via QR"
                     )
                 }
 
@@ -323,6 +335,19 @@ fun ServerDialog(
             onDismiss = {
                 showFileManagerDialog = false
             }
+        )
+    }
+
+    if (showQrPair) {
+        PairByQrDialog(
+            onKeyReady = { keyFromQr ->
+                val parsedName = keyFromQr.substringAfterLast("#", serverName)
+                serverName = parsedName
+                setServerKey(keyFromQr)
+                showQrPair = false
+                Toast.makeText(context, R.string.key_received, Toast.LENGTH_SHORT).show()
+            },
+            onCancel = { showQrPair = false }
         )
     }
 }

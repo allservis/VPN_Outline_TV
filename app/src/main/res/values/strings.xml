@@ -223,6 +223,7 @@
     <string name="dark_mode">Dark Mode</string>
     <string name="system">System</string>
     <string name="auto_connection">Automatic connection when opening the application</string>
+    <string name="key_received">Key received successfully</string>
 
 
 </resources>

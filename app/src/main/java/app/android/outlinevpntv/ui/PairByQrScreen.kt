@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,41 +30,104 @@ import app.android.outlinevpntv.data.remote.getLocalIp
 import app.android.outlinevpntv.data.remote.makeQr
 import app.android.outlinevpntv.data.remote.toImageBitmap
 import fi.iki.elonen.NanoHTTPD
+import java.net.BindException
 
 @Composable
-fun PairByQrScreen(onKeyReady: (String) -> Unit) {
+fun PairByQrScreen(
+    onKeyReady: (String) -> Unit
+) {
     val ctx = LocalContext.current
+
     var token by remember { mutableStateOf(genToken()) }
     var url by remember { mutableStateOf<String?>(null) }
     var qr by remember { mutableStateOf<ImageBitmap?>(null) }
-    var server: TvLocalServer? by remember { mutableStateOf(null) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(token) {
-        val ip = ctx.getLocalIp()
-        if (ip == null) { error = "Не удалось получить IP адрес"; return@LaunchedEffect }
-        val port = 45789
-        url = "http://$ip:$port/session/$token"
-        server?.stop()
-        server = TvLocalServer(port, token) { key ->
-            // получили ключ -> закрываем сервер и отдаём наверх
-            server?.stop()
-            onKeyReady(key)
-        }.also { it.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false) }
-        qr = makeQr(url!!).toImageBitmap()
+    var server by remember { mutableStateOf<TvLocalServer?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                server?.stop()
+            } catch (_: Throwable) { }
+            server = null
+        }
     }
 
-    Column(Modifier.fillMaxSize().padding(32.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Сканируйте QR с телефона (ту же Wi-Fi сеть)", fontSize = 20.sp)
+    LaunchedEffect(token) {
+        error = null
+        url = null
+        qr = null
+
+        val ip = ctx.getLocalIp()
+        if (ip == null) {
+            error = "Не удалось получить IP адрес устройства"
+            return@LaunchedEffect
+        }
+
+        try {
+            server?.stop()
+        } catch (_: Throwable) { }
+        server = null
+
+        val srv = TvLocalServer(
+            port = 0,
+            token = token
+        ) { key ->
+            try {
+                server?.stop()
+            } catch (_: Throwable) { }
+            server = null
+            onKeyReady(key)
+        }
+
+        try {
+            srv.start(NanoHTTPD.SOCKET_READ_TIMEOUT, /*daemon=*/false)
+
+            val actualPort = srv.getListeningPort()
+            if (actualPort <= 0) {
+                srv.stop()
+                error = "Не удалось занять порт"
+                return@LaunchedEffect
+            }
+
+            server = srv
+
+            val link = "http://$ip:$actualPort/session/$token"
+            url = link
+            qr = makeQr(link).toImageBitmap()
+        } catch (e: BindException) {
+            try {
+                srv.stop()
+            } catch (_: Throwable) { }
+            server = null
+            error = "Порт занят, пробуем ещё раз…"
+            token = genToken()
+        } catch (t: Throwable) {
+            try {
+                srv.stop()
+            } catch (_: Throwable) { }
+            server = null
+            error = "Ошибка запуска локального сервера: ${t.message}"
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Сканируйте QR с телефона (должно быть в той же Wi-Fi/LAN сети)", fontSize = 20.sp)
         Spacer(Modifier.height(16.dp))
         qr?.let { Image(it, contentDescription = null, modifier = Modifier.size(260.dp)) }
         Spacer(Modifier.height(8.dp))
         Text(url ?: "", fontSize = 14.sp)
         error?.let { Text(it, color = Color.Red) }
         Spacer(Modifier.height(24.dp))
-        Button(onClick = {
-            // Сгенерировать новый токен/перезапустить сессию
-            token = genToken()
-        }) { Text("Сгенерировать новый QR") }
+        Button(onClick = { token = genToken() }) {
+            Text("Сгенерировать новый QR")
+        }
     }
 }

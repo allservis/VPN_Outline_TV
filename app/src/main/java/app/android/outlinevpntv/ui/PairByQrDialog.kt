@@ -24,12 +24,11 @@ fun PairByQrDialog(
     Dialog(
         onDismissRequest = onCancel,
         properties = DialogProperties(
-            usePlatformDefaultWidth = false,   // полноэкранный
+            usePlatformDefaultWidth = false,
             dismissOnClickOutside = false,
             dismissOnBackPress = true
         )
     ) {
-        // фон диалога
         Surface(modifier = Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxSize()) {
                 PairByQrScreen(onKeyReady = onKeyReady)

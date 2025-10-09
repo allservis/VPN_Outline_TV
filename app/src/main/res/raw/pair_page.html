@@ -1,0 +1,67 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin: 40px;
+      color: #222;
+    }
+
+    h3 {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 14px 28px;
+      font-size: 18px;
+      font-weight: 600;
+      color: white;
+      background-color: #1976d2;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.25s ease;
+    }
+
+    button:hover {
+      background-color: #125a9c;
+    }
+
+    #msg {
+      margin-top: 18px;
+      font-size: 16px;
+    }
+</style>
+
+<h3>{{title}}</h3>
+<input id="key" placeholder="{{placeholder}}">
+<button onclick="send()">{{send}}</button>
+<p id="msg"></p>
+
+<script>
+    async function send() {
+      const key = document.getElementById('key').value.trim();
+      if (!key) { alert('{{enter_key_alert}}'); return; }
+      const r = await fetch('{{submit_url}}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key })
+      });
+      const j = await r.json();
+      document.getElementById('msg').innerText = j.ok
+        ? '{{key_sent_msg}}'
+        : ('{{error_prefix}} ' + (j.error || 'unknown'));
+    }
+</script>

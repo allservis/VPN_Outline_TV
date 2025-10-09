@@ -15,7 +15,7 @@ android {
         minSdk = 24
         targetSdk = 34
         versionCode = 1
-        versionName = "1.1.4"
+        versionName = "1.1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -86,4 +86,7 @@ dependencies {
 
     implementation (libs.gson)
 
+    implementation(libs.nanohttpd)
+    implementation(libs.core)
+    implementation(libs.zxing.android.embedded)
 }

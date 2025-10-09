@@ -1,5 +1,6 @@
 package app.android.outlinevpntv.utils.activityresult.base
 
+import android.content.ActivityNotFoundException
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.ActivityResultLauncher
@@ -17,46 +18,42 @@ abstract class BaseLauncher<I, O>(
 ) : ActivityResultCallback<O>, DefaultLifecycleObserver {
 
     private val resultBuilder = ResultBuilder<O>()
-    private lateinit var resultLauncher: ActivityResultLauncher<I>
+    private var resultLauncher: ActivityResultLauncher<I>? = null
 
-    /**
-     * Run result launch with callback
-     */
     open fun launch(input: I, callbackBuilder: ResultBuilder<O>.() -> Unit) {
         resultBuilder.callbackBuilder()
-        resultLauncher.launch(input)
+        try {
+            resultLauncher?.launch(input)
+                ?: run { resultBuilder.failed.invoke() }
+        } catch (e: ActivityNotFoundException) {
+            resultBuilder.failed.invoke()
+        } catch (t: Throwable) {
+            resultBuilder.failed.invoke()
+        }
     }
 
-    /**
-     * Register result launcher with [lifecycleOwner]
-     */
     fun register(lifecycleOwner: LifecycleOwner) {
         lifecycleOwner.lifecycle.addObserver(this)
     }
 
     final override fun onCreate(owner: LifecycleOwner) {
-        if (owner is ComponentActivity) {
-            resultLauncher = owner.registerForActivityResult(contract, this)
-        } else if (owner is Fragment) {
-            resultLauncher = owner.registerForActivityResult(contract, this)
+        resultLauncher = when (owner) {
+            is ComponentActivity -> owner.registerForActivityResult(contract, this)
+            is Fragment -> owner.registerForActivityResult(contract, this)
+            else -> null
         }
     }
 
     final override fun onDestroy(owner: LifecycleOwner) {
         owner.lifecycle.removeObserver(this)
-        resultLauncher.unregister()
+        runCatching { resultLauncher?.unregister() }
+        resultLauncher = null
     }
 
     override fun onActivityResult(result: O) {
-        when {
-            result != null -> resultBuilder.success.invoke(result)
-            else -> resultBuilder.failed.invoke()
-        }
+        if (result != null) resultBuilder.success.invoke(result)
+        else resultBuilder.failed.invoke()
     }
-}
-
-fun <O> BaseLauncher<Void?, O>.launch(callbackBuilder: ResultBuilder<O>.() -> Unit) {
-    launch(null, callbackBuilder)
 }
 
 @JvmName("launchUnit")

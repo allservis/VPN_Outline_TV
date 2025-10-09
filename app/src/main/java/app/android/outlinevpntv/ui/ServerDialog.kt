@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -64,6 +65,7 @@ fun ServerDialog(
     var isLoading by remember { mutableStateOf(false) }
     var isKeyError by remember { mutableStateOf(false) }
     var showFileManagerDialog by remember { mutableStateOf(false) }
+    var showQrPair by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val activity = (LocalContext.current as? Activity)
@@ -72,7 +74,7 @@ fun ServerDialog(
     var savedVpnKeys by remember { mutableStateOf(preferencesManager.getVpnKeys()) }
     var expanded by remember { mutableStateOf(false) }
 
-   val requestPermissionLauncher = rememberLauncherForActivityResult(
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
@@ -96,64 +98,76 @@ fun ServerDialog(
             if (!isLoading) onDismiss()
         },
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
                     text = stringResource(id = R.string.edit_server_info),
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
+                Row(verticalAlignment = Alignment.CenterVertically) {
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                IconButton(
-                    onClick = {
-                        val clipboardText = clipboardManager.getText()?.text
-                        if (!clipboardText.isNullOrEmpty()) {
-                            val parsedName = clipboardText.substringAfterLast("#", serverName)
-                            serverName = parsedName
-                            setServerKey(clipboardText)
-                        } else {
-                            Toast.makeText(context, R.string.clipboard_empty, Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.ContentPaste,
-                        contentDescription = "Paste from clipboard"
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                IconButton(
-                    onClick = {
-                       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            if (Environment.isExternalStorageManager()) {
-                               showFileManagerDialog = true
+                    IconButton(
+                        onClick = {
+                            val clipboardText = clipboardManager.getText()?.text
+                            if (!clipboardText.isNullOrEmpty()) {
+                                val parsedName = clipboardText.substringAfterLast("#", serverName)
+                                serverName = parsedName
+                                setServerKey(clipboardText)
                             } else {
-                                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                                intent.data = Uri.parse("package:${context.packageName}")
-                                activity?.startActivity(intent)
+                                Toast.makeText(context, R.string.clipboard_empty, Toast.LENGTH_SHORT).show()
                             }
-                        } else {
-                            val permission = Manifest.permission.READ_EXTERNAL_STORAGE
-                            val hasPermission = (
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ContentPaste,
+                            contentDescription = "Paste from clipboard"
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                if (Environment.isExternalStorageManager()) {
+                                    showFileManagerDialog = true
+                                } else {
+                                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                                    intent.data = Uri.parse("package:${context.packageName}")
+                                    activity?.startActivity(intent)
+                                }
+                            } else {
+                                val permission = Manifest.permission.READ_EXTERNAL_STORAGE
+                                val hasPermission =
                                     ContextCompat.checkSelfPermission(context, permission) ==
                                             PackageManager.PERMISSION_GRANTED
-                                    )
 
-                            if (hasPermission) {
-                                showFileManagerDialog = true
-                            } else {
-                               requestPermissionLauncher.launch(permission)
+                                if (hasPermission) {
+                                    showFileManagerDialog = true
+                                } else {
+                                    requestPermissionLauncher.launch(permission)
+                                }
                             }
                         }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Folder,
+                            contentDescription = "Read from file"
+                        )
                     }
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Folder,
-                        contentDescription = "Read from file"
-                    )
+                    IconButton(
+                        onClick = { showQrPair = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.QrCode,
+                            contentDescription = "Scan via QR"
+                        )
+                    }
                 }
             }
         },
@@ -168,7 +182,6 @@ fun ServerDialog(
                         readOnly = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .width(200.dp)
                             .height(56.dp),
                         trailingIcon = {
                             IconButton(onClick = { expanded = !expanded }) {
@@ -222,12 +235,12 @@ fun ServerDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Поле "Имя сервера"
                 OutlinedTextField(
                     value = serverName,
                     onValueChange = { serverName = it },
                     label = { Text(stringResource(id = R.string.server_name)) },
-                    singleLine = true
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -250,7 +263,8 @@ fun ServerDialog(
                         setServerKey(it)
                     },
                     label = { Text(stringResource(id = R.string.outline_key)) },
-                    singleLine = true
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 errorMessage?.let {
@@ -323,6 +337,19 @@ fun ServerDialog(
             onDismiss = {
                 showFileManagerDialog = false
             }
+        )
+    }
+
+    if (showQrPair) {
+        PairByQrDialog(
+            onKeyReady = { keyFromQr ->
+                val parsedName = keyFromQr.substringAfterLast("#", serverName)
+                serverName = parsedName
+                setServerKey(keyFromQr)
+                showQrPair = false
+                Toast.makeText(context, R.string.key_received, Toast.LENGTH_SHORT).show()
+            },
+            onCancel = { showQrPair = false }
         )
     }
 }

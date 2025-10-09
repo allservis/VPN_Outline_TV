@@ -210,7 +210,14 @@ class MainActivity : ComponentActivity() {
                     viewModel.vpnEvent(VpnEvent.ERROR)
                 }
             }
-            failed = { viewModel.vpnEvent(VpnEvent.ERROR) }
+            failed = {
+                runCatching {
+                    val intent = Intent(android.provider.Settings.ACTION_VPN_SETTINGS)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(intent)
+                }
+                viewModel.vpnEvent(VpnEvent.ERROR)
+            }
         }
     }
 }
